@@ -1,53 +1,33 @@
 import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { PasswordStrengthService } from './password-strength.service';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { PasswordInputComponent } from './password-input/password-input.component';
+import { StrengthIndicatorComponent } from './strength-indicator/strength-indicator.component';
 
 @Component({
   selector: 'app-password-checker',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PasswordInputComponent, StrengthIndicatorComponent],
   templateUrl: './password-checker.component.html',
   styleUrls: ['./password-checker.component.css']
 })
 export class PasswordCheckerComponent {
-  password: string = '';
-  strength: string = '';
+  form: FormGroup;
+  private _strength: string = '';
 
-  checkPasswordStrength() {
-    const hasLetters = /[a-zA-Z]/.test(this.password);
-    const hasNumbers = /\d/.test(this.password);
-    const hasSymbols = /[!@#$%^&*(),.?":{}|<>]/.test(this.password);
+  constructor(private fb: FormBuilder, private passwordStrengthService: PasswordStrengthService) {
+    this.form = this.fb.group({
+      password: ['']
+    });
 
-    if (this.password.length < 8) {
-      this.strength = '';
-    } else if ((hasLetters && hasNumbers && !hasSymbols) || 
-               (hasLetters && hasSymbols && !hasNumbers) || 
-               (hasNumbers && hasSymbols && !hasLetters)) {
-      this.strength = 'medium';
-    } else if (hasLetters && hasNumbers && hasSymbols) {
-      this.strength = 'strong';
-    } else {
-      this.strength = 'easy';
-    }
+    this.form.get('password')?.valueChanges.subscribe(value => {
+      this._strength = this.passwordStrengthService.checkPasswordStrength(value);
+    });
   }
 
-  getClass(index: number): string {
-    if (this.password.length === 0) {
-      return 'gray';
-    }
-    if (this.password.length < 8) {
-      return 'red';
-    }
-    switch (this.strength) {
-      case 'easy':
-        return index === 0 ? 'red' : 'gray';
-      case 'medium':
-        return index < 2 ? 'yellow' : 'gray';
-      case 'strong':
-        return 'green';
-      default:
-        return 'gray';
-    }
+  get strength(): string {
+    return this.passwordStrengthService.checkPasswordStrength(this.form.get('password')?.value || '');
   }
 }
 
